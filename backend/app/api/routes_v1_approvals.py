@@ -26,11 +26,12 @@ def list_approval_requests(
     records = query.order_by(ApprovalRequest.created_at.desc()).limit(100).all()
     
     items = []
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
 
     for rec in records:
         # Check if expired
-        is_expired = rec.status == "PENDING" and rec.expires_at < now_utc
+        exp = rec.expires_at.replace(tzinfo=None) if rec.expires_at.tzinfo else rec.expires_at
+        is_expired = rec.status == "PENDING" and exp < now_utc
         if is_expired:
             rec.status = "EXPIRED"
             db.commit()
