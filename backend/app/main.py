@@ -90,8 +90,20 @@ def health_check(db: Session = Depends(get_db)):
         }
     }
 
+frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend/dist"))
+assets_dist = os.path.join(frontend_dist, "assets")
+
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+if os.path.exists(assets_dist):
+    app.mount("/assets", StaticFiles(directory=assets_dist), name="assets")
+
 @app.get("/", tags=["Root"])
 def root():
+    index_html = os.path.join(frontend_dist, "index.html")
+    if os.path.exists(index_html):
+        return FileResponse(index_html)
     return {
         "project": "SENTINEL-X ShadowGuard",
         "tagline": "Intent-Aware Security Gateway for MCP-Connected AI Agents",
@@ -108,9 +120,3 @@ app.include_router(intents_router, prefix=settings.API_V1_STR)
 app.include_router(audit_router, prefix=settings.API_V1_STR)
 app.include_router(mcp_router, prefix=settings.API_V1_STR)
 app.include_router(demo_router, prefix=settings.API_V1_STR)
-
-# Mount built frontend single-page application if dist directory exists
-frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../frontend/dist"))
-if os.path.exists(frontend_dist):
-    from fastapi.staticfiles import StaticFiles
-    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
