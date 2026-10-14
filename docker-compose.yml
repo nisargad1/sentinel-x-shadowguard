@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  shadowguard-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sentinel-x-shadowguard:latest
+    container_name: sentinel-x-shadowguard
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - PORT=8000
+      - HOST=0.0.0.0
+      - HMAC_SECRET_KEY=sentinel-x-super-secret-hmac-key-hackathon-2026
+      - HMAC_MAX_DRIFT_SECONDS=300
+      - INTENT_DRIFT_THRESHOLD=0.65
+      - RISK_SCORE_THRESHOLD=60
+      - HONEYPOT_ENABLED=true
+      - DATABASE_URL=sqlite:///./shadowguard.db
+      - DEMO_RESET_TOKEN=shadowguard-reset-authorized-token-2026
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
