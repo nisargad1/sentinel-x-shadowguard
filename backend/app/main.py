@@ -27,6 +27,8 @@ from app.api.routes_v1_gateway import router as v1_gateway_router
 from app.api.routes_v1_approvals import router as v1_approvals_router
 from app.api.routes_v1_scenarios import router as v1_scenarios_router
 from app.api.routes_v1_analytics import router as v1_analytics_router
+from app.api.routes_metrics import router as metrics_router
+from app.core.cache import distributed_cache
 
 # Ensure all database tables exist immediately
 Base.metadata.create_all(bind=engine)
@@ -146,6 +148,11 @@ def health_check(db: Session = Depends(get_db)):
             "engine": engine.dialect.name,
             "recorded_events": total_events
         },
+        "scalability": {
+            "cache_backend": distributed_cache.backend_type,
+            "rate_limiting": "ACTIVE" if settings.RATE_LIMIT_ENABLED else "DISABLED",
+            "connection_pooling": "QueuePool" if "postgres" in str(engine.url) else "WAL_Optimized_SQLite"
+        },
         "modules": {
             "action_value_engine": "ACTIVE",
             "intent_drift_engine": "ACTIVE",
@@ -155,7 +162,9 @@ def health_check(db: Session = Depends(get_db)):
             "shadow_deception_sandbox": "ACTIVE",
             "dlp_inspector": "ACTIVE",
             "human_approval_inbox": "ACTIVE",
-            "proof_of_value_engine": "ACTIVE"
+            "proof_of_value_engine": "ACTIVE",
+            "distributed_rate_limiter": "ACTIVE",
+            "prometheus_metrics": "ACTIVE"
         }
     }
 
@@ -183,6 +192,7 @@ app.include_router(v1_gateway_router)
 app.include_router(v1_approvals_router)
 app.include_router(v1_scenarios_router)
 app.include_router(v1_analytics_router)
+app.include_router(metrics_router)
 
 # Preserve legacy / existing endpoints for backward compatibility
 app.include_router(dashboard_router, prefix=settings.API_V1_STR)

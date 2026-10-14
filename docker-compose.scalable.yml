@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  # 1. Distributed Storage: PostgreSQL 16
+  postgres:
+    image: postgres:16-alpine
+    container_name: smartguard-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smartguard
+      POSTGRES_PASSWORD: secure_smartguard_password_2026
+      POSTGRES_DB: smartguard_production
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartguard -d smartguard_production"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Distributed High-Throughput Cache: Redis 7
+  redis:
+    image: redis:7-alpine
+    container_name: smartguard-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 3. Stateless Gateway Replica 1
+  smartguard-gateway-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartguard-node-1
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - ENVIRONMENT=production
+      - PORT=8000
+      - HOST=0.0.0.0
+      - DATABASE_URL=postgresql://smartguard:secure_smartguard_password_2026@postgres:5432/smartguard_production
+      - REDIS_URL=redis://redis:6379/0
+      - RATE_LIMIT_ENABLED=true
+      - DEFAULT_RATE_LIMIT_PER_MINUTE=200
+      - HMAC_SECRET_KEY=sentinel-x-enterprise-cluster-secret-2026
+    expose:
+      - "8000"
+
+  # 4. Stateless Gateway Replica 2
+  smartguard-gateway-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartguard-node-2
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - ENVIRONMENT=production
+      - PORT=8000
+      - HOST=0.0.0.0
+      - DATABASE_URL=postgresql://smartguard:secure_smartguard_password_2026@postgres:5432/smartguard_production
+      - REDIS_URL=redis://redis:6379/0
+      - RATE_LIMIT_ENABLED=true
+      - DEFAULT_RATE_LIMIT_PER_MINUTE=200
+      - HMAC_SECRET_KEY=sentinel-x-enterprise-cluster-secret-2026
+    expose:
+      - "8000"
+
+  # 5. Reverse Proxy & Round-Robin Load Balancer: NGINX
+  nginx-lb:
+    image: nginx:alpine
+    container_name: smartguard-loadbalancer
+    restart: unless-stopped
+    depends_on:
+      - smartguard-gateway-1
+      - smartguard-gateway-2
+    ports:
+      - "80:80"
+      - "8000:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  pgdata:

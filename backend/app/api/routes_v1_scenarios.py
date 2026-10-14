@@ -96,6 +96,10 @@ def run_scenario(req: ScenarioRunRequest, db: Session = Depends(get_db)):
     if not scenario:
         raise HTTPException(status_code=404, detail=f"Scenario '{req.scenario_id}' not found. Use scenario_1 through scenario_6.")
 
+    # Special handling for Scenario 1: Clear cache to verify clean un-cached ALLOW execution
+    if req.scenario_id == "scenario_1":
+        action_value_engine.cache.clear()
+
     # Special handling for Scenario 3: To guarantee OPTIMIZE cache hit, ensure first run has populated cache
     if req.scenario_id == "scenario_3":
         # Prime the cache with the initial run

@@ -22,6 +22,9 @@ from app.security.detectors.command_injection import CommandInjectionDetector
 from app.security.detectors.sql_injection import SQLInjectionDetector
 from app.security.detectors.prompt_injection import PromptInjectionDetector
 from app.execution.adapter import execution_adapter
+from app.core.cache import distributed_cache
+from app.core.rate_limiter import rate_limiter
+from app.core.config import settings
 
 class ActionValueEngine:
     """
@@ -41,10 +44,16 @@ class ActionValueEngine:
         self.command_injection = CommandInjectionDetector()
         self.sql_injection = SQLInjectionDetector()
         self.prompt_injection = PromptInjectionDetector()
-        
-        # In-memory execution cache for duplicate/idempotent calls (Query -> (timestamp, result, cost))
-        self._execution_cache: Dict[str, Tuple[float, Any, int]] = {}
-        self.CACHE_TTL_SECONDS = 60.0
+        self.cache = distributed_cache
+        self.rate_limiter = rate_limiter
+        self.CACHE_TTL_SECONDS = settings.CACHE_TTL_SECONDS
+
+    @property
+    def _execution_cache(self):
+        class CacheWrapper(dict):
+            def clear(cls):
+                distributed_cache.clear()
+        return CacheWrapper()
 
     def _ensure_seed_entities(self, db: Session, workspace_id: str = "ws-default", agent_id: str = "finance-analyst-agent") -> Tuple[Workspace, Agent]:
         """Ensures the workspace and agent exist in the database with defaults."""
@@ -139,7 +148,32 @@ class ActionValueEngine:
         
         ws, agent = self._ensure_seed_entities(db, req.workspace_id, req.agent_id)
         
-        # Parse agent permissions
+        # 0. High-Throughput Rate Limiting
+        rate_key = f"{ws.id}:{agent.id}"
+        is_rate_ok, remaining, reset_sec = self.rate_limiter.check_rate_limit(
+            rate_key, limit_per_minute=settings.DEFAULT_RATE_LIMIT_PER_MINUTE
+        )
+        if not is_rate_ok:
+            duration_ms = round((time.time() - start_time) * 1000, 2)
+            return self._record_evaluation(
+                db=db,
+                ws=ws,
+                agent=agent,
+                correlation_id=correlation_id,
+                evaluation_id=evaluation_id,
+                req=req,
+                decision="BLOCK",
+                reason_code="RATE_LIMIT_EXCEEDED",
+                explanation=f"Agent '{agent.name}' exceeded rate limit ({settings.DEFAULT_RATE_LIMIT_PER_MINUTE} req/min). Throttling applied for {reset_sec}s.",
+                risk_level="MEDIUM",
+                risk_score=0.45,
+                intent_score=0.90,
+                cost_estimate=req.estimated_cost_cents or 1,
+                cost_actual=0,
+                savings=0,
+                execution_status="BLOCKED",
+                duration_ms=duration_ms
+            )
         try:
             permitted_tools = json.loads(agent.permitted_tools)
         except Exception:
@@ -432,41 +466,40 @@ class ActionValueEngine:
         db.commit()
 
         # =====================================================================
-        # 5. EFFICIENCY & DUPLICATE OPTIMIZATION
+        # 5. EFFICIENCY & DUPLICATE OPTIMIZATION (Distributed Cache)
         # =====================================================================
         cache_key = f"{agent.id}:{req.tool_name}:{params_str}"
-        now_ts = time.time()
+        cached_entry = self.cache.get(cache_key)
         
-        if cache_key in self._execution_cache:
-            prev_ts, cached_result, original_cost = self._execution_cache[cache_key]
-            if (now_ts - prev_ts) < self.CACHE_TTL_SECONDS:
-                duration_ms = round((time.time() - start_time) * 1000, 2)
-                # Reclaim pre-allocated cost since no external compute ran
-                agent.current_spend_cents -= estimated_cost
-                ws.current_spend_cents -= estimated_cost
-                db.commit()
+        if cached_entry is not None:
+            cached_result, original_cost = cached_entry
+            duration_ms = round((time.time() - start_time) * 1000, 2)
+            # Reclaim pre-allocated cost since no external compute ran
+            agent.current_spend_cents -= estimated_cost
+            ws.current_spend_cents -= estimated_cost
+            db.commit()
 
-                return self._record_evaluation(
-                    db=db,
-                    ws=ws,
-                    agent=agent,
-                    correlation_id=correlation_id,
-                    evaluation_id=evaluation_id,
-                    req=req,
-                    decision="OPTIMIZE",
-                    reason_code="DUPLICATE_OPTIMIZED_CACHE_HIT",
-                    explanation=f"Redundant identical query detected within {int(now_ts - prev_ts)}s. Served from verified safe cache, avoiding external tool invocation.",
-                    risk_level="LOW",
-                    risk_score=0.02,
-                    intent_score=1.0,
-                    cost_estimate=original_cost,
-                    cost_actual=0,
-                    savings=original_cost,
-                    optimization="IDEMPOTENT_CACHE_REUSE",
-                    execution_status="OPTIMIZED",
-                    execution_result=cached_result,
-                    duration_ms=duration_ms
-                )
+            return self._record_evaluation(
+                db=db,
+                ws=ws,
+                agent=agent,
+                correlation_id=correlation_id,
+                evaluation_id=evaluation_id,
+                req=req,
+                decision="OPTIMIZE",
+                reason_code="DUPLICATE_OPTIMIZED_CACHE_HIT",
+                explanation=f"Redundant identical query detected. Served from shared high-throughput cache ({self.cache.backend_type}), avoiding external compute.",
+                risk_level="LOW",
+                risk_score=0.02,
+                intent_score=1.0,
+                cost_estimate=original_cost,
+                cost_actual=0,
+                savings=original_cost,
+                optimization="IDEMPOTENT_CACHE_REUSE",
+                execution_status="OPTIMIZED",
+                execution_result=cached_result,
+                duration_ms=duration_ms
+            )
 
         # =====================================================================
         # 6. ALLOW — ALL CONSTRAINTS SATISFIED
@@ -484,9 +517,9 @@ class ActionValueEngine:
 
         duration_ms = round((time.time() - start_time) * 1000, 2)
         
-        # Cache safe read/search results for optimization
+        # Cache safe read/search results in distributed cache
         if req.action_name in ["read", "execute", "query"] and success:
-            self._execution_cache[cache_key] = (now_ts, result_data, cost_actual)
+            self.cache.set(cache_key, result_data, cost_actual, ttl=self.CACHE_TTL_SECONDS)
 
         # Reconcile actual spend vs pre-allocated estimated cost
         spend_delta = cost_actual - estimated_cost
