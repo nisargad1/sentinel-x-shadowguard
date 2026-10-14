@@ -12,9 +12,9 @@
 
 ## 🚀 Live Public Deployment & Demo
 
-- **Live Frontend Dashboard:** [https://carrier-advancement-lenses-fda.trycloudflare.com/](https://carrier-advancement-lenses-fda.trycloudflare.com/)
-- **Interactive Swagger API Documentation:** [https://carrier-advancement-lenses-fda.trycloudflare.com/docs](https://carrier-advancement-lenses-fda.trycloudflare.com/docs)
-- **Backend Health Endpoint:** [https://carrier-advancement-lenses-fda.trycloudflare.com/health](https://carrier-advancement-lenses-fda.trycloudflare.com/health)
+- **Live Frontend Dashboard:** [https://upon-recipe-elizabeth-dragon.trycloudflare.com/](https://upon-recipe-elizabeth-dragon.trycloudflare.com/)
+- **Interactive Swagger API Documentation:** [https://upon-recipe-elizabeth-dragon.trycloudflare.com/docs](https://upon-recipe-elizabeth-dragon.trycloudflare.com/docs)
+- **Backend Health Endpoint:** [https://upon-recipe-elizabeth-dragon.trycloudflare.com/health](https://upon-recipe-elizabeth-dragon.trycloudflare.com/health)
 
 ---
 
