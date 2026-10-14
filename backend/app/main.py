@@ -4,12 +4,14 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import engine, Base, get_db
 from app.models.security_event import SecurityEvent
+from app.models.smartguard import Workspace, Agent
 from app.api.routes_dashboard import router as dashboard_router
 from app.api.routes_security import router as security_router
 from app.api.routes_sandbox import router as sandbox_router
@@ -18,29 +20,45 @@ from app.api.routes_audit import router as audit_router
 from app.api.routes_mcp import router as mcp_router
 from app.api.routes_demo import router as demo_router, seed_realistic_events
 
-# Ensure database tables exist immediately
+# SmartGuard v1 routers
+from app.api.routes_v1_gateway import router as v1_gateway_router
+from app.api.routes_v1_approvals import router as v1_approvals_router
+from app.api.routes_v1_scenarios import router as v1_scenarios_router
+from app.api.routes_v1_analytics import router as v1_analytics_router
+
+# Ensure all database tables exist immediately
 Base.metadata.create_all(bind=engine)
 
 START_TIME = time.time()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: ensure tables and seed demo telemetry
+    # Startup: ensure tables and seed baseline telemetry
     Base.metadata.create_all(bind=engine)
     with Session(engine) as db:
         if db.query(SecurityEvent).count() == 0:
             seed_realistic_events(db)
+        # Ensure default workspace and agents exist
+        if not db.query(Workspace).filter(Workspace.id == "ws-default").first():
+            ws = Workspace(
+                id="ws-default",
+                name="Acme Corp AI Lab",
+                slug="acme-ai",
+                monthly_budget_cents=10000,
+                current_spend_cents=450
+            )
+            db.add(ws)
+            db.commit()
     yield
-    # Shutdown logic if needed
 
 app = FastAPI(
-    title="SENTINEL-X ShadowGuard",
+    title="SENTINEL-X SmartGuard",
     description=(
-        "Intent-Aware Runtime Security Gateway & Deception Sandbox for MCP-Connected AI Agents. "
-        "Provides real-time intent drift detection, multi-vector injection prevention, "
-        "DLP response quarantining, and isolated honeypot deception."
+        "The Trust Layer for Autonomous AI Agents. "
+        "Runtime enforcement gateway evaluating whether proposed agent tool actions "
+        "are authorized, relevant, safe, cost-effective, and necessary."
     ),
-    version=settings.VERSION,
+    version="2.0.0",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc"
@@ -70,8 +88,9 @@ def health_check(db: Session = Depends(get_db)):
 
     return {
         "status": "HEALTHY",
-        "gateway": "SENTINEL-X ShadowGuard",
-        "version": settings.VERSION,
+        "gateway": "SENTINEL-X SmartGuard",
+        "tagline": "The Trust Layer for Autonomous AI Agents",
+        "version": "2.0.0",
         "environment": settings.ENVIRONMENT,
         "uptime_seconds": uptime_seconds,
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -81,20 +100,20 @@ def health_check(db: Session = Depends(get_db)):
             "recorded_events": total_events
         },
         "modules": {
+            "action_value_engine": "ACTIVE",
             "intent_drift_engine": "ACTIVE",
             "injection_detectors": "ACTIVE",
             "hmac_integrity": "ACTIVE",
             "mcp_gateway_proxy": "ACTIVE",
             "shadow_deception_sandbox": "ACTIVE",
-            "dlp_inspector": "ACTIVE"
+            "dlp_inspector": "ACTIVE",
+            "human_approval_inbox": "ACTIVE",
+            "proof_of_value_engine": "ACTIVE"
         }
     }
 
 frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend/dist"))
 assets_dist = os.path.join(frontend_dist, "assets")
-
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 
 if os.path.exists(assets_dist):
     app.mount("/assets", StaticFiles(directory=assets_dist), name="assets")
@@ -105,14 +124,20 @@ def root():
     if os.path.exists(index_html):
         return FileResponse(index_html)
     return {
-        "project": "SENTINEL-X ShadowGuard",
-        "tagline": "Intent-Aware Security Gateway for MCP-Connected AI Agents",
+        "project": "SENTINEL-X SmartGuard",
+        "tagline": "The Trust Layer for Autonomous AI Agents",
         "docs_url": "/docs",
         "health_url": "/health",
-        "api_prefix": settings.API_V1_STR
+        "api_prefix": "/api/v1"
     }
 
-# Register all API endpoints under /api
+# Register SmartGuard API v1 endpoints
+app.include_router(v1_gateway_router)
+app.include_router(v1_approvals_router)
+app.include_router(v1_scenarios_router)
+app.include_router(v1_analytics_router)
+
+# Preserve legacy / existing endpoints for backward compatibility
 app.include_router(dashboard_router, prefix=settings.API_V1_STR)
 app.include_router(security_router, prefix=settings.API_V1_STR)
 app.include_router(sandbox_router, prefix=settings.API_V1_STR)

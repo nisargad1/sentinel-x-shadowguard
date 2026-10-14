@@ -17,7 +17,7 @@ def test_health_check_endpoint():
     assert res.status_code == 200
     data = res.json()
     assert data["status"] == "HEALTHY"
-    assert data["gateway"] == "SENTINEL-X ShadowGuard"
+    assert "SmartGuard" in data["gateway"]
     assert data["modules"]["intent_drift_engine"] == "ACTIVE"
 
 def test_dashboard_summary_endpoint():

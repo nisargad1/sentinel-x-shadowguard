@@ -1,6 +1,16 @@
-import { DashboardSummary, SecurityEvent, AuditLog, IntentContract, MCPToolResponse } from '../types';
+import {
+  DashboardSummary,
+  SecurityEvent,
+  AuditLog,
+  IntentContract,
+  MCPToolResponse,
+  ApprovalItem,
+  AgentProfile,
+  ProofOfValueMetrics,
+  ScenarioMeta,
+  ScenarioRunResult
+} from '../types';
 
-// In production, uses VITE_API_URL or defaults to relative /api or localhost in development
 export const API_BASE = import.meta.env.VITE_API_URL || (
   window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:8000'
@@ -82,7 +92,78 @@ export const api = {
     return res.json();
   },
 
-  async runScenario(scenario_id: 'DEMO_A' | 'DEMO_B' | 'DEMO_C' | 'DEMO_D'): Promise<MCPToolResponse> {
+  // SmartGuard 6 Demo Scenarios
+  async getScenarios(): Promise<ScenarioMeta[]> {
+    const res = await fetch(`${API_BASE}/api/v1/scenarios`);
+    if (!res.ok) throw new Error(`Failed to fetch scenarios: ${res.statusText}`);
+    return res.json();
+  },
+
+  async runScenarioV1(scenario_id: string): Promise<ScenarioRunResult> {
+    const res = await fetch(`${API_BASE}/api/v1/scenarios/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scenario_id })
+    });
+    if (!res.ok) throw new Error(`Scenario run failed: ${res.statusText}`);
+    return res.json();
+  },
+
+  async resetScenariosV1() {
+    const res = await fetch(`${API_BASE}/api/v1/scenarios/reset`, { method: 'POST' });
+    if (!res.ok) throw new Error(`Scenario reset failed: ${res.statusText}`);
+    return res.json();
+  },
+
+  // Human Approval Inbox
+  async getApprovals(status?: string): Promise<ApprovalItem[]> {
+    const url = status ? `${API_BASE}/api/v1/approvals?status=${status}` : `${API_BASE}/api/v1/approvals`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Failed to fetch approvals: ${res.statusText}`);
+    return res.json();
+  },
+
+  async decideApproval(approval_id: string, action: 'APPROVE' | 'REJECT', reason?: string) {
+    const res = await fetch(`${API_BASE}/api/v1/approvals/${approval_id}/action`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, reason })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || 'Approval action failed');
+    }
+    return res.json();
+  },
+
+  // Proof of Value & Analytics
+  async getProofOfValueMetrics(): Promise<ProofOfValueMetrics> {
+    const res = await fetch(`${API_BASE}/api/v1/value-engine/metrics`);
+    if (!res.ok) throw new Error(`Failed to fetch value metrics: ${res.statusText}`);
+    return res.json();
+  },
+
+  async runBenchmark() {
+    const res = await fetch(`${API_BASE}/api/v1/value-engine/benchmark`, { method: 'POST' });
+    if (!res.ok) throw new Error(`Benchmark run failed: ${res.statusText}`);
+    return res.json();
+  },
+
+  // Agent Trust Profiles
+  async getAgents(): Promise<AgentProfile[]> {
+    const res = await fetch(`${API_BASE}/api/v1/agents`);
+    if (!res.ok) throw new Error(`Failed to fetch agents: ${res.statusText}`);
+    return res.json();
+  },
+
+  async getAgentProfile(agent_id: string): Promise<AgentProfile> {
+    const res = await fetch(`${API_BASE}/api/v1/agents/${agent_id}`);
+    if (!res.ok) throw new Error(`Failed to fetch agent profile: ${res.statusText}`);
+    return res.json();
+  },
+
+  // Legacy scenario runner (preserved)
+  async runLegacyScenario(scenario_id: 'DEMO_A' | 'DEMO_B' | 'DEMO_C' | 'DEMO_D'): Promise<MCPToolResponse> {
     const res = await fetch(`${API_BASE}/api/demo/run-scenario`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -90,6 +171,10 @@ export const api = {
     });
     if (!res.ok) throw new Error(`Scenario run failed: ${res.statusText}`);
     return res.json();
+  },
+
+  async runScenario(scenario_id: 'DEMO_A' | 'DEMO_B' | 'DEMO_C' | 'DEMO_D'): Promise<MCPToolResponse> {
+    return this.runLegacyScenario(scenario_id);
   },
 
   async resetDemoDatabase(token?: string) {

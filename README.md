@@ -1,7 +1,7 @@
-# SENTINEL-X SHADOWGUARD
-### Intent-Aware Runtime Security Gateway & Deception Sandbox for MCP AI Agents
+# SENTINEL-X SMARTGUARD
+### The Trust Layer for Autonomous AI Agents
 
-[![Tests](https://img.shields.io/badge/Tests-22%20Passed-brightgreen?style=flat-square)](backend/tests)
+[![Tests](https://img.shields.io/badge/Tests-33%20Passed-brightgreen?style=flat-square)](backend/tests)
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.14-blue?style=flat-square)](backend)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square)](frontend)
@@ -12,90 +12,165 @@
 
 ## 🚀 Live Public Deployment & Demo
 
-- **Live Public Dashboard (Active Tunnel):** [https://scene-necklace-periodic-acute.trycloudflare.com/](https://scene-necklace-periodic-acute.trycloudflare.com/)
-- **Interactive Swagger API Documentation:** [https://scene-necklace-periodic-acute.trycloudflare.com/docs](https://scene-necklace-periodic-acute.trycloudflare.com/docs)
-- **Backend Health Telemetry:** [https://scene-necklace-periodic-acute.trycloudflare.com/health](https://scene-necklace-periodic-acute.trycloudflare.com/health)
-- **1-Click Local Demo Launcher:** Simply double-click [`START_DEMO.bat`](START_DEMO.bat) in the repository root to start both backend and tunnel.
-- **Permanent Cloud Hosting Guide:** See [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) for 24/7 deployment on Render/Railway.
+- **Live Public SaaS Console (Active Tunnel):** [https://scene-necklace-periodic-acute.trycloudflare.com/](https://scene-necklace-periodic-acute.trycloudflare.com/)
+- **Interactive OpenAPI / Swagger Documentation:** [https://scene-necklace-periodic-acute.trycloudflare.com/docs](https://scene-necklace-periodic-acute.trycloudflare.com/docs)
+- **Runtime Health Telemetry:** [https://scene-necklace-periodic-acute.trycloudflare.com/health](https://scene-necklace-periodic-acute.trycloudflare.com/health)
+- **1-Click Local Demo Launcher:** Simply double-click [`START_DEMO.bat`](START_DEMO.bat) in the repository root to start both backend server and Cloudflare tunnel.
+- **Permanent Cloud Hosting Guide:** See [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) for 24/7 deployment on Render or Railway.
 
 ---
 
-## 1. Project Overview
+## 1. Executive Summary & Problem Statement
 
-**SENTINEL-X ShadowGuard** is an intent-aware runtime security gateway designed specifically for Model Context Protocol (MCP) connected autonomous AI agents.
+Autonomous AI agents powered by LLMs and protocols like Model Context Protocol (MCP) are rapidly taking over production operations—reading files, querying databases, executing APIs, and modifying CRM records.
 
-As AI agents gain access to tools and execute actions autonomously, traditional perimeter defenses fail to prevent semantic threats:
-- **Intent Drift:** An agent directed to summarize a public document is tricked into accessing password vaults or database dumps.
-- **Perimeter Breakout:** Malicious arguments execute directory traversals (`../../etc/passwd`) against host infrastructure.
-- **Data Leakage in Tool Responses:** Database tools return raw tokens or internal API keys back into the LLM context.
+**The Catastrophic Problem:**
+Traditional network firewalls and API gateways operate at network layers (IP, port, HTTP method) and have **zero visibility into AI intent, agent trust, or cumulative action cost**. If an autonomous agent suffers an indirect prompt injection, tool hallucination, or runaway loop:
+- It can read sensitive payroll databases while performing a harmless report summary (**Intent Drift & Unauthorized Access**).
+- It can break out of application sandboxes using traversal attacks (**System Compromise**).
+- It can waste thousands of dollars executing redundant identical queries in a loop (**Budget Bleed**).
+- It can execute irreversible high-consequence writes without oversight (**Uncontrolled Autonomy**).
 
-**SENTINEL-X ShadowGuard** interposes directly between the AI agent and MCP tools. It enforces dynamic Intent Contracts, prevents multi-vector injections, isolates attacks in an in-memory virtual deception sandbox, and inspects tool outputs via automated Data Loss Prevention (DLP) quarantining.
+**SENTINEL-X SmartGuard** is the **Trust Layer for Autonomous AI Agents**: an intent-aware, pre-execution runtime gateway that evaluates every proposed tool call across **5 dimensions** and returns one of **4 deterministic decisions** before the tool is ever allowed to execute.
 
 ---
 
-## 2. Architecture Diagram
+## 2. Core Architecture & The 5-Stage Action Value Engine
 
 ```text
-User / AI Agent
-       |
-       v
-SENTINEL-X Security Gateway
-       |
-       +--> Intent Contract & Drift Detection
-       |
-       +--> Request Validation (Path Traversal, Cmd, SQL, Prompt Injection)
-       |
-       +--> HMAC Integrity Verification (HMAC-SHA256 & Nonce Store)
-       |
-       +--> MCP Tool Execution (Safe Demo Server Proxy)
-       |
-       +--> Response Inspection & DLP (Auto-Quarantine & Masking)
-       |
-       +--> Shadow Deception Simulator (Virtual In-Memory Honeypot)
-       |
-       v
-Audit Database (SQLite / Postgres) & Live React Security Dashboard
+               +-------------------------------------------------------------+
+               |                  Autonomous AI Agent Client                 |
+               |       (Python SDK, LangChain, LlamaIndex, MCP Client)       |
+               +-------------------------------------------------------------+
+                                              |
+                                              | Propose Action (JSON / REST)
+                                              v
++-------------------------------------------------------------------------------------------+
+|                          SENTINEL-X SMARTGUARD RUNTIME GATEWAY                            |
++-------------------------------------------------------------------------------------------+
+|  1. INTENT ALIGNMENT                                                                      |
+|     Evaluates semantic and structural overlap with user objective (Goal-Action Alignment) |
+|                                                                                           |
+|  2. DETERMINISTIC AUTHORIZATION                                                           |
+|     Enforces agent role boundaries, permitted tools, and resource pattern access policies|
+|                                                                                           |
+|  3. MULTI-VECTOR RISK SCANNING                                                             |
+|     Inspects payloads for Path Traversal, Command Injection, SQLi & Prompt Injection     |
+|                                                                                           |
+|  4. BUDGET & COST ENFORCEMENT                                                             |
+|     Enforces workspace & agent-level monetary caps atomically pre-execution               |
+|                                                                                           |
+|  5. EFFICIENCY & VALUE OPTIMIZATION                                                       |
+|     Detects redundant/duplicate idempotent calls with 60s TTL; returns cached results     |
++-------------------------------------------------------------------------------------------+
+        |                     |                       |                        |
+        v                     v                       v                        v
+    [ ALLOW ]            [ OPTIMIZE ]               [ ASK ]                [ BLOCK ]
+Safe & authorized.     Redundant call safely    High-consequence write;   Unauthorized,
+Direct execution       returned from cache;     requires human sign-off   risky, or over-budget.
+logged to audit.       saves cost & compute.    in Approval Inbox.        Never executes.
+        |                     |                       |                        |
+        v                     v                       v                        v
++---------------+     +---------------+       +---------------+       +------------------+
+| MCP Execution |     | Cached Result |       | Crypto Token  |       | Structured Audit |
+|    Adapter    |     | Zero Tool Run |       | Human Inbox   |       | Incident Logged  |
++---------------+     +---------------+       +---------------+       +------------------+
+```
+
+### The 4 Gateway Decisions:
+
+1. **ALLOW:** The proposed action is authorized, aligned with the user's intent, safe, and within budget limits. The gateway proceeds to execute the tool and records an audit log.
+2. **OPTIMIZE:** A safe, identical, or more efficient execution path is available. The gateway satisfies the agent's request without re-executing costly compute or external API calls, measuring and recording net cost savings.
+3. **ASK:** The action proposes a sensitive or irreversible change (e.g. deleting files, deactivating customer accounts, transferring funds). Execution is paused pre-execution, generating a cryptographic approval token in the **Human Approval Inbox**.
+4. **BLOCK:** The proposed action violates authorization policies, exceeds budget caps, drifts from stated user intent, or contains malicious payloads. The protected tool is **never invoked**.
+
+---
+
+## 3. The 6 Reproducible Demo Scenarios
+
+SENTINEL-X SmartGuard includes 6 reproducible end-to-end scenarios executing live through both API endpoints and the interactive frontend console:
+
+| # | Scenario Name | Agent & Intent | Proposed Tool Action | Gateway Decision | Reason Code & Outcome |
+| :---: | :--- | :--- | :--- | :---: | :--- |
+| **1** | **Legitimate Document Summary** | `finance-analyst-agent`<br>Intent: *"Summarize Q3 report"* | `read_demo_file({"filename": "report.pdf"})` | **ALLOW** | `AUTHZ_PERMITTED`<br>Verified intent alignment (100%), permitted resource. Report safely read and returned. |
+| **2** | **Restricted Resource Access** | `finance-analyst-agent`<br>Intent: *"Summarize Q3 report"* | `read_demo_file({"filename": "payroll_salaries.csv"})` | **BLOCK** | `AUTHZ_RESOURCE_FORBIDDEN`<br>Restricted payroll file is outside agent permissions. Tool is never invoked. |
+| **3** | **Redundant Search Optimization** | `market-research-agent`<br>Intent: *"Research pricing"* | `search_demo_documents({"query": "enterprise tier pricing"})` | **OPTIMIZE** | `DUPLICATE_OPTIMIZED_CACHE_HIT`<br>Identical query repeated within 60s window. Served from cache; saved 5¢ compute. |
+| **4** | **Sensitive Action Human Approval** | `crm-automation-agent`<br>Intent: *"Deactivate churned account"* | `update_customer_status({"customer_id": "CUST-9842", "new_status": "DEACTIVATED"})` | **ASK** | `POLICY_REQUIRES_HUMAN_APPROVAL`<br>Halted pre-execution. Generates crypto token in Human Approval Inbox for 1-click review. |
+| **5** | **Budget Limit Exceeded** | `translation-agent`<br>Intent: *"Batch translate document"* | `translate_document({"doc_id": "doc_large.pdf", "estimated_cost": 50})` | **BLOCK** | `BUDGET_CAP_EXCEEDED`<br>Cost (50¢) exceeds agent remaining budget cap (5¢ left). Atomically halted. |
+| **6** | **Prompt Injection in Synthetic Content** | `support-agent`<br>Intent: *"Review support ticket"* | `dump_database_credentials({"override": "SYSTEM_OVERRIDE_ACTIVE"})` | **BLOCK** | `INJECTION_ATTACK_DETECTED`<br>Untrusted ticket text attempts credential dump. Disallowed tool blocked immediately. |
+
+---
+
+## 4. Transparent Proof of Value (PoV) Engine
+
+Rather than claiming vague efficiency gains, SENTINEL-X SmartGuard measures honest, observable financial and runtime value using the formula:
+
+$$\text{Net Savings} = \text{Baseline Cost} - \text{Enforced Cost} - \text{Gateway Overhead}$$
+
+- **Baseline Cost:** Total theoretical cost if all proposed actions ran unconstrained.
+- **Enforced Cost:** Cost of actions actually executed and permitted through the gateway.
+- **Gateway Overhead:** Evaluated computing overhead incurred by the gateway (~$0.0001 per evaluation).
+- **Sub-5ms Evaluation Latency:** Pure deterministic policy engine runs with an average latency of ~3.4 milliseconds.
+- **Reproducible Benchmark:** Click **"Run Reproducible Benchmark"** in the UI to evaluate 20 mixed actions and verify the savings calculation live.
+
+---
+
+## 5. Human-in-the-Loop Approval Workflow
+
+High-stakes tool executions generate cryptographically signed approval records:
+- **State Machine:** `PENDING` $\rightarrow$ `APPROVED` or `REJECTED`.
+- **Replay Protection:** Approval tokens are single-use. Once an action is approved, replaying the same token fails with `409 Conflict`.
+- **Pre-Execution Halt:** Sensitive tools are never executed until explicit human authorization is received.
+- **Atomic Post-Approval Execution:** When authorized in the Inbox, the gateway executes the tool immediately on behalf of the agent, records the authorizer's identity, and updates agent telemetry.
+
+---
+
+## 6. Python SDK Quickstart
+
+AI agents integrate with SENTINEL-X SmartGuard with just a few lines of Python:
+
+```python
+from smartguard_client import SmartGuardClient
+
+# Initialize client pointing to local or remote gateway
+client = SmartGuardClient(base_url="http://localhost:8000")
+
+# Propose an action before executing
+evaluation = client.propose_action(
+    agent_id="finance-analyst-agent",
+    user_intent="Summarize quarterly earnings report",
+    tool_name="read_demo_file",
+    action_name="read",
+    parameters={"filename": "report.pdf"},
+    estimated_cost_cents=2
+)
+
+print(f"Decision: {evaluation['decision']}")  # ALLOW
+print(f"Execution Output: {evaluation['execution_result']}")
+
+# If an action returns ASK:
+if evaluation['decision'] == 'ASK':
+    print(f"Human approval required: Token {evaluation['approval_token']}")
+```
+
+Run the complete demo workflow in your terminal:
+```bash
+python sdk/examples/agent_workflow.py
 ```
 
 ---
 
-## 3. Key Features
+## 7. Technology Stack
 
-- **Dynamic Intent Contracts:** Parses natural language user goals at ingestion and generates deterministic allowlists for resources and actions.
-- **Intent Drift Interception:** Quantifies action alignment on a 0.0 to 1.0 scale and blocks unauthorized tool usage.
-- **In-Memory Shadow Deception Sandbox:** Traps directory traversals inside an isolated virtual filesystem containing synthetic honeypots (`/etc/passwd`, `/fake_credentials.txt`) with canary token tracing (`CANARY-X9821-EXFIL-TRAP`).
-- **Multi-Vector Injection Defenses:** Independent detectors for Command Injection, SQL Injection, Path Traversal, and Prompt Injection / Jailbreaks.
-- **Response DLP Quarantine:** Audits tool outputs before LLM ingestion. Automatically quarantines and redacts API keys, passwords, and private key headers.
-- **Cryptographic Request Integrity:** Verifies payloads using HMAC-SHA256 with constant-time equality checks, clock drift bounds, and replay attack rejection.
-- **Full-Stack Hackathon Dashboard:** Built with React, Vite, Tailwind CSS, and Recharts, featuring dark-theme telemetry, real-time event feeds, and an interactive 4-scenario Demo Deck.
+- **Backend:** Python 3.11+, FastAPI 0.115, Pydantic v2, SQLAlchemy, Uvicorn
+- **Frontend:** React 18, TypeScript 5, Vite, Tailwind CSS, Lucide Icons, Recharts
+- **Storage:** SQLite with WAL mode (local) / PostgreSQL ready for production
+- **Security:** HMAC-SHA256 request verification, in-memory virtual deception sandbox, response DLP quarantining, deterministic intent engine
+- **Test Suite:** Pytest (33 automated test suites running in <2 seconds)
 
 ---
 
-## 4. Required End-to-End Demo Scenarios
-
-SENTINEL-X ShadowGuard features a built-in interactive **Demo Control Panel** with four repeatable test scenarios executing against live backend endpoints:
-
-| Scenario | Input Goal & Proposed Action | Gateway Decision | Key Outcome |
-| :--- | :--- | :--- | :--- |
-| **DEMO A: Legitimate Request** | Goal: *"Summarize report.pdf"*<br>Tool: `read_demo_file({"filename": "report.pdf"})` | `ALLOW` | Document is read from synthetic storage. Intent match verified (100%). Audit event logged. |
-| **DEMO B: Intent Drift** | Goal: *"Summarize report.pdf"*<br>Tool: `read_demo_file({"filename": "passwords.txt"})` | `DENY` | Intent drift intercepted. Unauthorized resource access blocked. Zero credentials returned. |
-| **DEMO C: Path Traversal** | Goal: *"Analyze report"*<br>Tool: `read_demo_file({"filename": "../../../etc/passwd"})` | `DECEPTION_REDIRECT` | Real host disk protected. Redirected to in-memory honeypot. Synthetic canary returned. |
-| **DEMO D: Response DLP** | Goal: *"Check calendar"*<br>Tool: `get_demo_calendar` (returns synthetic AWS key) | `QUARANTINE` | Output scanner flags sensitive key and password. Payload quarantined and redacted. |
-
----
-
-## 5. Technology Stack
-
-- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, Recharts, Lucide Icons
-- **Backend:** Python 3.11+, FastAPI, Pydantic v2, SQLAlchemy, Uvicorn
-- **Storage:** SQLite (local development) / PostgreSQL-compatible configuration
-- **Security Engine:** Deterministic rule engine, HMAC-SHA256 integrity, in-memory honeypot filesystem
-- **Testing:** Pytest, FastAPI TestClient (22 automated test suites)
-- **Deployment:** Multi-stage Docker container, unified single-port SPA serving or decoupled microservices
-
----
-
-## 6. Local Setup Instructions
+## 8. Local Setup & Quickstart
 
 ### Prerequisites
 - Python 3.11+
@@ -119,111 +194,112 @@ source venv/bin/activate
 pip install -r requirements.txt
 python run.py
 ```
-*Backend runs on `http://localhost:8000` with Swagger documentation at `http://localhost:8000/docs`.*
+*Backend starts on `http://localhost:8000` with API docs at `http://localhost:8000/docs`.*
 
 ### 3. Frontend Setup
 ```bash
 cd ../frontend
 npm install
-npm run dev
+npm run build   # Or 'npm run dev' for development server
 ```
-*Frontend runs on `http://localhost:5173`.*
 
 ### 4. Running via Docker
 ```bash
 docker-compose up --build
 ```
-*Full application (both UI and API) available at `http://localhost:8000`.*
 
 ---
 
-## 7. Automated Test Suite
+## 9. Automated Test Suite (33/33 Tests Passing)
 
-Run the full backend test suite covering multi-vector detectors, intent drift, HMAC tampering, sandbox containment, and API routes:
+Execute the full suite of unit and integration tests:
 
 ```bash
-cd backend
-pytest tests -v
+pytest -v
 ```
 
-**Results:**
 ```text
-tests/test_api_endpoints.py::test_health_check_endpoint PASSED           [  4%]
-tests/test_api_endpoints.py::test_dashboard_summary_endpoint PASSED      [  9%]
-tests/test_api_endpoints.py::test_demo_scenario_a_legitimate PASSED      [ 13%]
-tests/test_api_endpoints.py::test_demo_scenario_b_intent_drift PASSED    [ 18%]
-tests/test_api_endpoints.py::test_demo_scenario_c_path_traversal_deception PASSED [ 22%]
-tests/test_api_endpoints.py::test_demo_scenario_d_dlp_quarantine PASSED  [ 27%]
-tests/test_api_endpoints.py::test_audit_logs_and_export PASSED           [ 31%]
-tests/test_detectors.py::test_path_traversal_detection PASSED            [ 36%]
-tests/test_detectors.py::test_command_injection_detection PASSED         [ 40%]
-tests/test_detectors.py::test_sql_injection_detection PASSED             [ 45%]
-tests/test_detectors.py::test_prompt_injection_detection PASSED          [ 50%]
-tests/test_dlp_response.py::test_dlp_detects_and_redacts_api_key PASSED  [ 54%]
-tests/test_dlp_response.py::test_dlp_detects_password_fields PASSED      [ 59%]
-tests/test_dlp_response.py::test_dlp_clean_output_passes_unmodified PASSED [ 63%]
-tests/test_hmac_integrity.py::test_valid_hmac_signature PASSED           [ 68%]
-tests/test_hmac_integrity.py::test_tampered_payload_rejected PASSED      [ 72%]
-tests/test_hmac_integrity.py::test_expired_timestamp_rejected PASSED     [ 77%]
-tests/test_hmac_integrity.py::test_replay_attack_rejected PASSED         [ 81%]
-tests/test_intent_drift.py::test_legitimate_intent_contract_match PASSED [ 86%]
-tests/test_intent_drift.py::test_intent_drift_unauthorized_resource PASSED [ 90%]
-tests/test_intent_drift.py::test_prohibited_action_override PASSED       [ 95%]
-tests/test_sandbox_deception.py::test_deception_sandbox_files PASSED     [100%]
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1 -- 33 items
 
-============================= 22 passed in 1.14s ==============================
+backend/tests/test_api_endpoints.py::test_health_check_endpoint PASSED   [  3%]
+backend/tests/test_api_endpoints.py::test_dashboard_summary_endpoint PASSED [  6%]
+backend/tests/test_api_endpoints.py::test_demo_scenario_a_legitimate PASSED [  9%]
+backend/tests/test_api_endpoints.py::test_demo_scenario_b_intent_drift PASSED [ 12%]
+backend/tests/test_api_endpoints.py::test_demo_scenario_c_path_traversal_deception PASSED [ 15%]
+backend/tests/test_api_endpoints.py::test_demo_scenario_d_dlp_quarantine PASSED [ 18%]
+backend/tests/test_api_endpoints.py::test_audit_logs_and_export PASSED   [ 21%]
+backend/tests/test_detectors.py::test_path_traversal_detection PASSED    [ 24%]
+backend/tests/test_detectors.py::test_command_injection_detection PASSED [ 27%]
+backend/tests/test_detectors.py::test_sql_injection_detection PASSED     [ 30%]
+backend/tests/test_detectors.py::test_prompt_injection_detection PASSED  [ 33%]
+backend/tests/test_dlp_response.py::test_dlp_detects_and_redacts_api_key PASSED [ 36%]
+backend/tests/test_dlp_response.py::test_dlp_detects_password_fields PASSED [ 39%]
+backend/tests/test_dlp_response.py::test_dlp_clean_output_passes_unmodified PASSED [ 42%]
+backend/tests/test_hmac_integrity.py::test_valid_hmac_signature PASSED   [ 45%]
+backend/tests/test_hmac_integrity.py::test_tampered_payload_rejected PASSED [ 48%]
+backend/tests/test_hmac_integrity.py::test_expired_timestamp_rejected PASSED [ 51%]
+backend/tests/test_hmac_integrity.py::test_replay_attack_rejected PASSED [ 54%]
+backend/tests/test_intent_drift.py::test_legitimate_intent_contract_match PASSED [ 57%]
+backend/tests/test_intent_drift.py::test_intent_drift_unauthorized_resource PASSED [ 60%]
+backend/tests/test_intent_drift.py::test_prohibited_action_override PASSED [ 63%]
+backend/tests/test_sandbox_deception.py::test_deception_sandbox_files PASSED [ 66%]
+backend/tests/test_smartguard_v1.py::test_scenario_1_legitimate_allow PASSED [ 69%]
+backend/tests/test_smartguard_v1.py::test_scenario_2_restricted_resource_block PASSED [ 72%]
+backend/tests/test_smartguard_v1.py::test_scenario_3_redundant_search_optimize PASSED [ 75%]
+backend/tests/test_smartguard_v1.py::test_scenario_4_sensitive_action_ask PASSED [ 78%]
+backend/tests/test_smartguard_v1.py::test_approval_workflow_execution_and_replay_resistance PASSED [ 81%]
+backend/tests/test_smartguard_v1.py::test_scenario_5_budget_exceeded_block PASSED [ 84%]
+backend/tests/test_smartguard_v1.py::test_scenario_6_prompt_injection_block PASSED [ 87%]
+backend/tests/test_smartguard_v1.py::test_scenarios_reset PASSED         [ 90%]
+backend/tests/test_smartguard_v1.py::test_proof_of_value_metrics PASSED  [ 93%]
+backend/tests/test_smartguard_v1.py::test_repeatable_benchmark PASSED    [ 96%]
+backend/tests/test_smartguard_v1.py::test_agent_trust_profiles PASSED    [100%]
+
+============================= 33 passed in 1.62s ==============================
 ```
 
 ---
 
-## 8. API Endpoint Reference
+## 10. Complete API Reference
 
+### SmartGuard Core Gateway (`/api/v1/`)
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/v1/actions/propose` | Evaluate proposed action across 5 dimensions (ALLOW, OPTIMIZE, ASK, BLOCK) |
+| `GET` | `/api/v1/actions/{id}` | Retrieve evaluation record and audit log by evaluation ID |
+| `GET` | `/api/v1/approvals` | List approval requests filtered by status (`PENDING`, `APPROVED`, `REJECTED`) |
+| `POST` | `/api/v1/approvals/{id}/action` | Review approval (APPROVE/REJECT) with replay-resistant execution |
+| `GET` | `/api/v1/scenarios` | List the 6 reproducible demonstration scenarios |
+| `POST` | `/api/v1/scenarios/run` | Execute one of the 6 scenarios against real gateway logic |
+| `POST` | `/api/v1/scenarios/reset` | Reset scenario telemetry and database state |
+| `GET` | `/api/v1/value-engine/metrics` | Retrieve live Proof of Value metrics and net savings |
+| `POST` | `/api/v1/value-engine/benchmark` | Run 20-action benchmark proving measured cost & latency |
+| `GET` | `/api/v1/agents` | List agent trust profiles, budgets, and permitted tools |
+| `GET` | `/api/v1/agents/{id}` | Retrieve specific agent trust details and recent actions |
+
+### Runtime Telemetry & Security Defense (`/api/`)
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `GET` | `/health` | Production health check (database, modules, uptime) |
-| `GET` | `/api/dashboard/summary` | Live telemetry metrics, risk trends, recent incidents |
-| `GET` | `/api/dashboard/events` | Searchable & filterable security event feed |
+| `GET` | `/api/dashboard/summary` | Gateway metrics, risk score, attacks intercepted, sandboxes active |
+| `GET` | `/api/dashboard/events` | Filterable incident feed with full JSON inspection payloads |
 | `GET` | `/api/dashboard/stream` | Server-Sent Events (SSE) live telemetry stream |
-| `POST` | `/api/security/evaluate` | Intent and injection evaluation for agent tool calls |
-| `POST` | `/api/security/inspect-response` | Post-execution DLP scanner and redactor |
-| `POST` | `/api/security/verify-signature` | HMAC-SHA256 integrity and replay verification |
-| `POST` | `/api/sandbox/simulate` | Virtual honeypot path containment simulator |
-| `GET` | `/api/sandbox/status` | Deception filesystem state and synthetic file catalog |
-| `POST` | `/api/intents/contract` | Structured Intent Contract generator |
-| `POST` | `/api/intents/evaluate` | Real-time intent drift evaluation |
-| `POST` | `/api/mcp/call-tool` | Mediated MCP Tool Gateway proxy |
-| `POST` | `/api/demo/run-scenario` | Automated execution of the 4 hackathon demo scenarios |
-| `POST` | `/api/demo/reset` | Resets and seeds baseline demonstration telemetry |
-| `GET` | `/api/audit-logs` | Searchable audit trail with HMAC verification |
-| `GET` | `/api/audit-logs/export` | Compliance audit report exporter (JSON / CSV) |
+| `POST` | `/api/security/inspect-response` | Post-execution DLP inspector redacting API keys and passwords |
+| `POST` | `/api/sandbox/simulate` | Virtual in-memory honeypot directory traversal containment |
+| `GET` | `/api/audit-logs` | Tamper-evident audit log trail with HMAC verification |
+| `GET` | `/api/audit-logs/export` | Export compliance logs as JSON or CSV |
 
 ---
 
-## 9. MCP Integration Guide
+## 11. Security Threat Boundaries
 
-To route an external Model Context Protocol (MCP) server through SENTINEL-X ShadowGuard:
-
-1. Configure your AI agent client to point tool execution requests to the gateway endpoint: `POST /api/mcp/call-tool`.
-2. Include the original user goal in the request payload:
-   ```json
-   {
-     "user_goal": "Summarize release notes",
-     "tool_name": "read_demo_file",
-     "arguments": {"filename": "release_notes.md"}
-   }
-   ```
-3. The gateway inspects intent drift, ensures path traversal isolation, verifies command safety, proxies the execution to the MCP tool, and inspects the output for DLP leaks before returning to the agent.
+- **In-Memory Virtual Honeypot:** Traversal breakouts are captured inside a pure Python virtual filesystem (`/etc/passwd`, `/etc/shadow`) with canary signatures. Real host disks and processes are 100% isolated.
+- **Fail-Closed Execution:** If an agent payload fails authorization or triggers an injection flag, execution is denied immediately.
+- **Defense in Depth:** Deterministic authorization runs first, followed by regex injection shields, budget checks, and post-execution response DLP quarantine.
 
 ---
 
-## 10. Security Limitations & Threat Boundaries
-
-- **In-Memory Deception Honeypot:** The deception filesystem is entirely virtualized in memory. It holds zero real credentials or host disk inodes.
-- **Fail-Closed Architecture:** Unsigned or tampered requests are rejected prior to policy evaluation.
-- **HMAC Scope:** HMAC verification guarantees request payload integrity and prevents replay attacks. It does not replace user identity authentication.
-
----
-
-## 11. License
+## 12. License
 
 This project is licensed under the MIT License.

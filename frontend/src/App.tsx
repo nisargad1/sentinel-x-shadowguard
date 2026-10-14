@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
+import { LandingPageView } from './components/LandingPageView';
 import { MetricsOverview } from './components/MetricsOverview';
+import { ScenariosView } from './components/ScenariosView';
+import { ApprovalInboxView } from './components/ApprovalInboxView';
+import { ProofOfValueView } from './components/ProofOfValueView';
+import { AgentTrustProfilesView } from './components/AgentTrustProfilesView';
 import { LiveEventFeed } from './components/LiveEventFeed';
 import { IntentMonitoringView } from './components/IntentMonitoringView';
 import { ThreatIntelView } from './components/ThreatIntelView';
@@ -40,10 +45,9 @@ export const App: React.FC = () => {
   useEffect(() => {
     loadData();
 
-    // Polling fallback every 6 seconds to keep live metrics sync
+    // Polling fallback every 6 seconds to keep live metrics synced
     const interval = setInterval(loadData, 6000);
 
-    // Optional SSE live stream
     let eventSource: EventSource | null = null;
     try {
       eventSource = new EventSource(`${API_BASE}/api/dashboard/stream`);
@@ -53,7 +57,7 @@ export const App: React.FC = () => {
         }
       };
     } catch {
-      // SSE unsupported or offline, polling handles it
+      // Polling handles update
     }
 
     return () => {
@@ -63,13 +67,13 @@ export const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-cyber-dark text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       <Header
         systemHealth={summary?.system_health || 'OPERATIONAL'}
         avgRisk={summary?.average_risk_score || 0}
         onRefresh={loadData}
         isRefreshing={isRefreshing}
-        onOpenDemo={() => setIsDemoOpen(true)}
+        onOpenDemo={() => setActiveTab('scenarios')}
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -78,17 +82,43 @@ export const App: React.FC = () => {
           onSelectTab={setActiveTab}
           attacksDetected={summary?.attacks_detected || 0}
           sandboxActivations={summary?.sandbox_activations || 0}
-          onOpenDemo={() => setIsDemoOpen(true)}
+          onOpenDemo={() => setActiveTab('scenarios')}
         />
 
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 bg-gradient-to-br from-slate-950 via-slate-900 to-[#080d1a]">
           <div className="max-w-7xl mx-auto space-y-6">
+            {activeTab === 'landing' && (
+              <LandingPageView
+                onEnterConsole={() => setActiveTab('overview')}
+                onExploreScenarios={() => setActiveTab('scenarios')}
+              />
+            )}
+
             {activeTab === 'overview' && (
               <MetricsOverview
                 summary={summary}
                 onSelectEvent={setSelectedEvent}
-                onOpenDemo={() => setIsDemoOpen(true)}
+                onOpenDemo={() => setActiveTab('scenarios')}
               />
+            )}
+
+            {activeTab === 'scenarios' && (
+              <ScenariosView
+                onOpenApprovals={() => setActiveTab('approvals')}
+                onOpenAudit={() => setActiveTab('audit')}
+              />
+            )}
+
+            {activeTab === 'approvals' && (
+              <ApprovalInboxView />
+            )}
+
+            {activeTab === 'value' && (
+              <ProofOfValueView />
+            )}
+
+            {activeTab === 'agents' && (
+              <AgentTrustProfilesView />
             )}
 
             {activeTab === 'events' && (
@@ -98,33 +128,48 @@ export const App: React.FC = () => {
               />
             )}
 
-            {activeTab === 'intents' && <IntentMonitoringView />}
+            {activeTab === 'intents' && (
+              <IntentMonitoringView />
+            )}
 
-            {activeTab === 'threats' && <ThreatIntelView />}
+            {activeTab === 'threats' && (
+              <ThreatIntelView />
+            )}
 
-            {activeTab === 'sandbox' && <DeceptionSandboxView />}
+            {activeTab === 'sandbox' && (
+              <DeceptionSandboxView />
+            )}
 
-            {activeTab === 'audit' && <AuditLogsView />}
+            {activeTab === 'audit' && (
+              <AuditLogsView />
+            )}
 
-            {activeTab === 'settings' && <SettingsView onRefreshData={loadData} />}
+            {activeTab === 'settings' && (
+              <SettingsView onRefreshData={loadData} />
+            )}
           </div>
         </main>
       </div>
 
-      {/* Demo Modal */}
-      <DemoControlPanel
-        isOpen={isDemoOpen}
-        onClose={() => setIsDemoOpen(false)}
-        onScenarioCompleted={loadData}
-      />
+      {/* Modal for viewing detailed security events */}
+      {selectedEvent && (
+        <EventDetailModal
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+        />
+      )}
 
-      {/* Event Detail Inspector Modal */}
-      <EventDetailModal
-        event={selectedEvent}
-        onClose={() => setSelectedEvent(null)}
-      />
+      {/* Legacy 4-scenario modal preserved as secondary option */}
+      {isDemoOpen && (
+        <DemoControlPanel
+          isOpen={isDemoOpen}
+          onClose={() => setIsDemoOpen(false)}
+          onScenarioCompleted={loadData}
+        />
+      )}
     </div>
   );
 };
 
 export default App;
+
