@@ -38,6 +38,7 @@ class ActionEvaluationOutput(BaseModel):
 
 class ApprovalActionRequest(BaseModel):
     action: str = Field(..., description="APPROVE or REJECT")
+    approval_token: Optional[str] = Field(default=None, description="Cryptographic token issued when action was paused")
     approved_by: Optional[str] = Field(default="secops-operator@enterprise.com", description="Approving identity")
     reason: Optional[str] = Field(default="Human operator validated write operation", description="Decision rationale")
 

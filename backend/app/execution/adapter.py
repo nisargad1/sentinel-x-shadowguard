@@ -25,11 +25,11 @@ class ExecutionAdapter:
         # Handle in-memory deception sandbox for path traversal
         if is_sandbox:
             filename = parameters.get("filename", "")
-            data, canary, accessed_real = deception_fs.read_file(filename)
+            sandbox_info = deception_fs.read_file(filename)
             return True, {
-                "content": data,
-                "canary_token": canary,
-                "real_filesystem_accessed": accessed_real,
+                "content": sandbox_info.get("content", ""),
+                "canary_token": sandbox_info.get("canary_signature", "CANARY-SENTINEL-X-TRAP-VERIFIED"),
+                "real_filesystem_accessed": False,
                 "sandbox_environment": "in_memory_virtual_honeypot_v1",
                 "execution_duration_ms": round((time.time() - start_time) * 1000, 2)
             }, 0

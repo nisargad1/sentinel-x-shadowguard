@@ -8,10 +8,12 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
+import hashlib
+import app.models
 from app.core.config import settings
 from app.core.database import engine, Base, get_db
 from app.models.security_event import SecurityEvent
-from app.models.smartguard import Workspace, Agent
+from app.models.smartguard import Workspace, Agent, ApiKey
 from app.api.routes_dashboard import router as dashboard_router
 from app.api.routes_security import router as security_router
 from app.api.routes_sandbox import router as sandbox_router
@@ -49,6 +51,51 @@ async def lifespan(app: FastAPI):
             )
             db.add(ws)
             db.commit()
+
+        # Seed default active API key
+        default_key_hash = hashlib.sha256(b"sg_live_enterprise_default_key_2026").hexdigest()
+        if not db.query(ApiKey).filter(ApiKey.hashed_secret == default_key_hash).first():
+            db.add(ApiKey(
+                id="key-enterprise-default",
+                workspace_id="ws-default",
+                key_prefix="sg_live_ent",
+                hashed_secret=default_key_hash,
+                name="Production Default Agent Key",
+                is_active=True
+            ))
+
+        # Seed revoked test key
+        revoked_key_hash = hashlib.sha256(b"sg_revoked_key_test_2026").hexdigest()
+        if not db.query(ApiKey).filter(ApiKey.hashed_secret == revoked_key_hash).first():
+            db.add(ApiKey(
+                id="key-revoked-test",
+                workspace_id="ws-default",
+                key_prefix="sg_rev_test",
+                hashed_secret=revoked_key_hash,
+                name="Revoked Compromised Key",
+                is_active=False
+            ))
+
+        # Seed second isolated tenant workspace and key
+        if not db.query(Workspace).filter(Workspace.id == "ws-tenant-bravo").first():
+            db.add(Workspace(
+                id="ws-tenant-bravo",
+                name="Bravo Logistics AI",
+                slug="bravo-logistics",
+                monthly_budget_cents=5000,
+                current_spend_cents=100
+            ))
+        bravo_key_hash = hashlib.sha256(b"sg_live_tenant_bravo_key_2026").hexdigest()
+        if not db.query(ApiKey).filter(ApiKey.hashed_secret == bravo_key_hash).first():
+            db.add(ApiKey(
+                id="key-tenant-bravo",
+                workspace_id="ws-tenant-bravo",
+                key_prefix="sg_live_bravo",
+                hashed_secret=bravo_key_hash,
+                name="Tenant Bravo Integration Key",
+                is_active=True
+            ))
+        db.commit()
     yield
 
 app = FastAPI(

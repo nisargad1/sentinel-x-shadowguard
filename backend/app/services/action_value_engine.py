@@ -244,28 +244,29 @@ class ActionValueEngine:
 
         # Prompt Injection in parameters or synthetic override attempts
         is_prompt_inj, p_details, p_risk = self.prompt_injection.inspect(params_str + " " + req.user_intent)
-        if "dump_database" in req.tool_name or "override" in params_str.lower() or "credentials" in params_str.lower() or is_prompt_inj:
-            if "password" in params_str.lower() or "dump" in req.tool_name or is_prompt_inj:
-                duration_ms = round((time.time() - start_time) * 1000, 2)
-                return self._record_evaluation(
-                    db=db,
-                    ws=ws,
-                    agent=agent,
-                    correlation_id=correlation_id,
-                    evaluation_id=evaluation_id,
-                    req=req,
-                    decision="BLOCK",
-                    reason_code="PROMPT_INJECTION_DETECTED",
-                    explanation=f"Prompt injection or unauthorized credential exfiltration attempt blocked: {p_details}. Gateway enforce fail-closed boundary.",
-                    risk_level="HIGH",
-                    risk_score=0.92,
-                    intent_score=0.05,
-                    cost_estimate=req.estimated_cost_cents or 5,
-                    cost_actual=0,
-                    savings=0,
-                    execution_status="BLOCKED",
-                    duration_ms=duration_ms
-                )
+        has_credential_exfil = any(k in params_str.lower() for k in ["admin_keys", "credentials", "system_override", "dump_database"])
+        if is_prompt_inj or has_credential_exfil:
+            duration_ms = round((time.time() - start_time) * 1000, 2)
+            expl = f"Prompt injection or unauthorized credential exfiltration attempt blocked: {p_details}. Gateway enforces fail-closed boundary." if is_prompt_inj else "Unauthorized credential exfiltration signature detected in parameters. Gateway enforces fail-closed boundary."
+            return self._record_evaluation(
+                db=db,
+                ws=ws,
+                agent=agent,
+                correlation_id=correlation_id,
+                evaluation_id=evaluation_id,
+                req=req,
+                decision="BLOCK",
+                reason_code="PROMPT_INJECTION_DETECTED",
+                explanation=expl,
+                risk_level="HIGH",
+                risk_score=0.92,
+                intent_score=0.05,
+                cost_estimate=req.estimated_cost_cents or 5,
+                cost_actual=0,
+                savings=0,
+                execution_status="BLOCKED",
+                duration_ms=duration_ms
+            )
 
         # =====================================================================
         # 2. AUTHORIZATION & RESOURCE BOUNDARIES
@@ -393,12 +394,15 @@ class ActionValueEngine:
             )
 
         # =====================================================================
-        # 4. COST & BUDGET CONSTRAINTS
+        # 4. COST & BUDGET CONSTRAINTS (Atomic Pre-Allocation)
         # =====================================================================
         estimated_cost = req.estimated_cost_cents or 2
-        # Default translation tool has higher cost
         if "translate" in req.tool_name:
             estimated_cost = 50
+
+        # Refresh agent state to avoid stale read
+        db.refresh(agent)
+        db.refresh(ws)
 
         if (agent.current_spend_cents + estimated_cost) > agent.budget_limit_cents:
             duration_ms = round((time.time() - start_time) * 1000, 2)
@@ -422,6 +426,11 @@ class ActionValueEngine:
                 duration_ms=duration_ms
             )
 
+        # Atomically pre-allocate estimated cost to close the TOCTOU concurrency race window
+        agent.current_spend_cents += estimated_cost
+        ws.current_spend_cents += estimated_cost
+        db.commit()
+
         # =====================================================================
         # 5. EFFICIENCY & DUPLICATE OPTIMIZATION
         # =====================================================================
@@ -432,6 +441,11 @@ class ActionValueEngine:
             prev_ts, cached_result, original_cost = self._execution_cache[cache_key]
             if (now_ts - prev_ts) < self.CACHE_TTL_SECONDS:
                 duration_ms = round((time.time() - start_time) * 1000, 2)
+                # Reclaim pre-allocated cost since no external compute ran
+                agent.current_spend_cents -= estimated_cost
+                ws.current_spend_cents -= estimated_cost
+                db.commit()
+
                 return self._record_evaluation(
                     db=db,
                     ws=ws,
@@ -457,18 +471,27 @@ class ActionValueEngine:
         # =====================================================================
         # 6. ALLOW — ALL CONSTRAINTS SATISFIED
         # =====================================================================
-        success, result_data, cost_actual = execution_adapter.execute_tool(
-            req.tool_name, req.action_name, req.parameters
-        )
+        try:
+            success, result_data, cost_actual = execution_adapter.execute_tool(
+                req.tool_name, req.action_name, req.parameters
+            )
+        except Exception as exec_err:
+            # Refund reservation on unexpected execution failure
+            agent.current_spend_cents -= estimated_cost
+            ws.current_spend_cents -= estimated_cost
+            db.commit()
+            raise exec_err
+
         duration_ms = round((time.time() - start_time) * 1000, 2)
         
         # Cache safe read/search results for optimization
         if req.action_name in ["read", "execute", "query"] and success:
             self._execution_cache[cache_key] = (now_ts, result_data, cost_actual)
 
-        # Deduct budget atomically
-        agent.current_spend_cents += cost_actual
-        ws.current_spend_cents += cost_actual
+        # Reconcile actual spend vs pre-allocated estimated cost
+        spend_delta = cost_actual - estimated_cost
+        agent.current_spend_cents += spend_delta
+        ws.current_spend_cents += spend_delta
         db.commit()
 
         return self._record_evaluation(

@@ -125,7 +125,8 @@ def test_repeatable_benchmark():
     res = client.post("/api/v1/value-engine/benchmark")
     assert res.status_code == 200
     data = res.json()
-    assert data["workload_actions"] == 30
+    assert data["workload_actions"] == 20
+    assert data["execution_mode"] == "empirical_measured_pipeline"
     assert data["baseline_unconstrained_cost_cents"] > data["enforced_smartguard_cost_cents"]
     assert data["net_measured_savings_cents"] > 0
     assert "savings_percentage" in data

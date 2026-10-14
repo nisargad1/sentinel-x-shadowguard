@@ -110,6 +110,14 @@ def run_scenario(req: ScenarioRunRequest, db: Session = Depends(get_db)):
         )
         action_value_engine.evaluate_and_execute(db, prime_req)
 
+    # Special handling for Scenario 5: Ensure translation agent is positioned near its budget cap
+    if req.scenario_id == "scenario_5":
+        trans_agent = db.query(Agent).filter(Agent.id == "translation-agent").first()
+        if trans_agent:
+            trans_agent.current_spend_cents = 95
+            trans_agent.budget_limit_cents = 100
+            db.commit()
+
     # Now execute the evaluated scenario action
     action_req = ActionProposeRequest(
         workspace_id="ws-default",

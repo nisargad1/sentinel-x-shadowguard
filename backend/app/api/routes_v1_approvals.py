@@ -1,10 +1,12 @@
 import json
+import hmac
 from datetime import datetime, timezone
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.auth import get_current_workspace
 from app.models.smartguard import ApprovalRequest, ActionEvaluation, Agent
 from app.models.audit_log import AuditLog
 from app.schemas.smartguard import ApprovalActionRequest, ApprovalItem
@@ -15,11 +17,14 @@ router = APIRouter(prefix="/api/v1/approvals", tags=["SmartGuard Human Approval 
 @router.get("", response_model=List[ApprovalItem])
 def list_approval_requests(
     status: Optional[str] = None,
-    workspace_id: str = "ws-default",
+    workspace_id: Optional[str] = None,
+    x_api_key: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
-    """Lists human approval requests with optional status filtering (PENDING, APPROVED, REJECTED, EXPIRED)."""
-    query = db.query(ApprovalRequest).filter(ApprovalRequest.workspace_id == workspace_id)
+    """Lists human approval requests with workspace tenant isolation and status filtering."""
+    ws_id = get_current_workspace(x_api_key=x_api_key, workspace_id=workspace_id, db=db)
+    
+    query = db.query(ApprovalRequest).filter(ApprovalRequest.workspace_id == ws_id)
     if status:
         query = query.filter(ApprovalRequest.status == status.upper())
     
@@ -64,15 +69,34 @@ def list_approval_requests(
 def decide_approval_request(
     approval_id: str,
     req: ApprovalActionRequest,
+    workspace_id: Optional[str] = None,
+    x_api_key: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
     """
     Approves or rejects a pending action approval request.
-    Enforces replay-resistance, cryptographic binding to the exact parameters, and expiration checks.
+    Enforces tenant isolation, cryptographic token verification (if provided), replay-resistance, and expiration checks.
     """
+    ws_id = get_current_workspace(x_api_key=x_api_key, workspace_id=workspace_id, db=db)
+
     approval = db.query(ApprovalRequest).filter(ApprovalRequest.id == approval_id).first()
     if not approval:
         raise HTTPException(status_code=404, detail="Approval request not found")
+
+    # Tenant boundary enforcement: cannot approve actions from another workspace
+    if approval.workspace_id != ws_id:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Forbidden: Cannot approve an action belonging to workspace '{approval.workspace_id}'."
+        )
+
+    # Optional Cryptographic Token Check: if provided, verify constant-time match
+    if req.approval_token:
+        if not hmac.compare_digest(req.approval_token.strip(), approval.token_hash.strip()):
+            raise HTTPException(
+                status_code=403,
+                detail="Cryptographic approval token mismatch. Unauthorized execution attempt."
+            )
 
     # Replay-Resistance Check
     if approval.status != "PENDING":
