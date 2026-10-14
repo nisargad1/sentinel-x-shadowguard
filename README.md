@@ -10,6 +10,14 @@
 
 ---
 
+## 🚀 Live Public Deployment & Demo
+
+- **Live Frontend Dashboard:** [https://carrier-advancement-lenses-fda.trycloudflare.com/](https://carrier-advancement-lenses-fda.trycloudflare.com/)
+- **Interactive Swagger API Documentation:** [https://carrier-advancement-lenses-fda.trycloudflare.com/docs](https://carrier-advancement-lenses-fda.trycloudflare.com/docs)
+- **Backend Health Endpoint:** [https://carrier-advancement-lenses-fda.trycloudflare.com/health](https://carrier-advancement-lenses-fda.trycloudflare.com/health)
+
+---
+
 ## 1. Project Overview
 
 **SENTINEL-X ShadowGuard** is an intent-aware runtime security gateway designed specifically for Model Context Protocol (MCP) connected autonomous AI agents.
