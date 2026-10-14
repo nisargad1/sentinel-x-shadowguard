@@ -12,9 +12,11 @@
 
 ## 🚀 Live Public Deployment & Demo
 
-- **Live Frontend Dashboard:** [https://upon-recipe-elizabeth-dragon.trycloudflare.com/](https://upon-recipe-elizabeth-dragon.trycloudflare.com/)
+- **Live Public Dashboard (Active Tunnel):** [https://upon-recipe-elizabeth-dragon.trycloudflare.com/](https://upon-recipe-elizabeth-dragon.trycloudflare.com/)
 - **Interactive Swagger API Documentation:** [https://upon-recipe-elizabeth-dragon.trycloudflare.com/docs](https://upon-recipe-elizabeth-dragon.trycloudflare.com/docs)
-- **Backend Health Endpoint:** [https://upon-recipe-elizabeth-dragon.trycloudflare.com/health](https://upon-recipe-elizabeth-dragon.trycloudflare.com/health)
+- **Backend Health Telemetry:** [https://upon-recipe-elizabeth-dragon.trycloudflare.com/health](https://upon-recipe-elizabeth-dragon.trycloudflare.com/health)
+- **1-Click Local Demo Launcher:** Simply double-click [`START_DEMO.bat`](START_DEMO.bat) in the repository root to start both backend and tunnel.
+- **Permanent Cloud Hosting Guide:** See [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) for 24/7 deployment on Render/Railway.
 
 ---
 
