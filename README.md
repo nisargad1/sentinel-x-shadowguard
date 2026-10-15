@@ -1,7 +1,7 @@
 # SENTINEL-X SMARTGUARD
 ### The Trust Layer for Autonomous AI Agents
 
-[![Tests](https://img.shields.io/badge/Tests-33%20Passed-brightgreen?style=flat-square)](backend/tests)
+[![Tests](https://img.shields.io/badge/Tests-44%20Passed-brightgreen?style=flat-square)](backend/tests)
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.14-blue?style=flat-square)](backend)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square)](frontend)
@@ -10,11 +10,14 @@
 
 ---
 
-## 🚀 Live Public Deployment & Demo
+## 🚀 Live Public Deployment & Presentation
 
 - **Live Public SaaS Console (Active Tunnel):** [https://scene-necklace-periodic-acute.trycloudflare.com/](https://scene-necklace-periodic-acute.trycloudflare.com/)
 - **Interactive OpenAPI / Swagger Documentation:** [https://scene-necklace-periodic-acute.trycloudflare.com/docs](https://scene-necklace-periodic-acute.trycloudflare.com/docs)
 - **Runtime Health Telemetry:** [https://scene-necklace-periodic-acute.trycloudflare.com/health](https://scene-necklace-periodic-acute.trycloudflare.com/health)
+- **📊 Presentation Pitch Deck (.pptx):** [Download SENTINEL-X_ShadowGuard_Round2_Pitch.pptx](docs/SENTINEL-X_ShadowGuard_Round2_Pitch.pptx)
+- **🎯 Round 2 Technical Defense Deck (Markdown):** [`docs/ROUND2_PRESENTATION_GUIDE.md`](docs/ROUND2_PRESENTATION_GUIDE.md)
+- **⚡ Hackathon Pitch Deck & Demo Script (Markdown):** [`docs/HACKATHON_PRESENTATION_DECK.md`](docs/HACKATHON_PRESENTATION_DECK.md)
 - **1-Click Local Demo Launcher:** Simply double-click [`START_DEMO.bat`](START_DEMO.bat) in the repository root to start both backend server and Cloudflare tunnel.
 - **Permanent Cloud Hosting Guide:** See [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) for 24/7 deployment on Render or Railway.
 
