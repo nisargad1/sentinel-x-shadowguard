@@ -2,7 +2,7 @@
 
 > **System:** SENTINEL-X SmartGuard (Runtime Enforcement Gateway for Autonomous AI Agents)  
 > **Repository:** [https://github.com/nisargad1/sentinel-x-shadowguard](https://github.com/nisargad1/sentinel-x-shadowguard)  
-> **Public Gateway Endpoint:** [https://scene-necklace-periodic-acute.trycloudflare.com](https://scene-necklace-periodic-acute.trycloudflare.com)  
+> **Public Gateway Endpoint:** [https://fort-conducted-bowling-investigated.trycloudflare.com](https://fort-conducted-bowling-investigated.trycloudflare.com)  
 > **Status:** Production Scalable Architecture Deployed & Verified (Commit `0dc2e47`)
 
 ---
