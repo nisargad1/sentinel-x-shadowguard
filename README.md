@@ -9,6 +9,11 @@
 [![License](https://img.shields.io/badge/License-MIT-purple?style=flat-square)](LICENSE)
 
 ---
+> 🚧 **Project Status: Under Active Development**
+> SENTINEL-X SmartGuard started at HackUrity 2026 and is still being improved. Some features are incomplete, and you may run into bugs. Live demo links have been taken down while I work on stability.
+
+---
+
 
 ## 1. Executive Summary & Problem Statement
 
