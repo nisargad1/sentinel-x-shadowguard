@@ -10,16 +10,6 @@
 
 ---
 
-## 🚀 Live Public Deployment & Presentation
-
-- **Live Public SaaS Console (Active Tunnel):** [https://seem-thomas-vaccine-pas.trycloudflare.com/](https://seem-thomas-vaccine-pas.trycloudflare.com/)
-- **Interactive OpenAPI / Swagger Documentation:** [https://seem-thomas-vaccine-pas.trycloudflare.com/docs](https://seem-thomas-vaccine-pas.trycloudflare.com/docs)
-- **Runtime Health Telemetry:** [https://seem-thomas-vaccine-pas.trycloudflare.com/health](https://seem-thomas-vaccine-pas.trycloudflare.com/health)
-- **1-Click Local Demo Launcher:** Simply double-click [`START_DEMO.bat`](START_DEMO.bat) in the repository root to start both backend server and Cloudflare tunnel.
-- **Permanent Cloud Hosting Guide:** See [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) for 24/7 deployment on Render or Railway.
-
----
-
 ## 1. Executive Summary & Problem Statement
 
 Autonomous AI agents powered by LLMs and protocols like Model Context Protocol (MCP) are rapidly taking over production operations—reading files, querying databases, executing APIs, and modifying CRM records.
